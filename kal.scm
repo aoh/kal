@@ -2,6 +2,7 @@
 
 (import
    (owl parse)
+   (owl date)
    (owl args))
 
 (define version "0.1")
@@ -9,6 +10,24 @@
 
 ;;;
 
+(define (ascii-digit? x)
+   (and (<= #\0 x) (<= x #\9)))
+
+(define get-nat
+   (let-parses
+      ((chars (get-greedy+ (get-byte-if ascii-digit?))))
+      (fold (λ (n b) (+ (* n 10) (- b 48))) 0 chars)))
+
+(define get-date
+   (let-parses
+      ((d get-nat)
+       (skip (get-imm #\.))
+       (m get-nat)
+       (skip (get-imm #\.))
+       (y get-nat)
+       (verify (valid-date? d m y) "This date is not ok."))
+      (tuple 'date d m y)))
+ 
 (define get-line
    (let-parses
       ((rs (get-greedy* (get-rune-if (lambda (x) (not (eq? x #\newline))))))
@@ -17,8 +36,15 @@
 
 (define kal-grammar
    (let-parses
-      ((lines (get-greedy* get-line)))
-      lines))
+      ((vals
+         (get-greedy*
+            (get-either
+               (let-parses
+                  ((d get-date)
+                   (skip (get-imm #\newline)))
+                  d)
+               get-line))))
+      vals))
 
 (define (kal-parse path)
    (let ((data (file->list path)))
