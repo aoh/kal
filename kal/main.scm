@@ -1,6 +1,7 @@
 (define-library (kal main)
 
    (import
+      (only (owl sys) getenv)
       (owl base)
       (owl parse)
       (owl date)
@@ -40,6 +41,11 @@
          (cl-rules
             `((date "-t" "--time" cook ,string->integer
                   comment "use given instead of current unix time")
+              (days "-d" "--days" cook ,string->integer
+                  comment "number of days to show"
+                  default "3")
+              (show-recurs "-r" "--show-recurs"
+                  comment "show also rules of recurring events")
               (help "-h" "--help"))))
 
       (define usage-text 
@@ -130,7 +136,7 @@
          (fold (cons-happening-on date) tail recs))
 
       (define (recurring-events date last recs)
-         (if (date< last date)
+         (if (date<= last date)
             null
             (add-recurrences-on date recs
                (recurring-events (step date) last recs))))
@@ -138,7 +144,7 @@
       (define (kal-output x dict)
          (lets
             ((start-time (get dict 'date (time)))
-             (end-time (+ start-time (* 2 week)))
+             (end-time (+ start-time (* day (getf dict 'days))))
              (now (date-of start-time))
              (end (date-of end-time))
              (evs 
@@ -146,7 +152,7 @@
                   (lambda (x) 
                      (and 
                         (date<= now (car x))
-                        (date<= (car x) end)))
+                        (date< (car x) end)))
                   (keep pair? x)))
              (recs
                (remove pair? x))
@@ -166,12 +172,12 @@
                   (print (cdr evt))
                   (car evt))
                #false evs)
-
-         (let ((recurs (remove pair? x)))
-            (if (pair? recurs)
-               (begin
-                  (print "")
-                  (for-each print-recurring recurs))))))
+         (if (getf dict 'show-recurs)
+            (let ((recurs (remove pair? x)))
+               (if (pair? recurs)
+                  (begin
+                     (print "")
+                     (for-each print-recurring recurs)))))))
 
       (define (kal-read-files paths)
          (fold
@@ -183,8 +189,11 @@
                      #false)))
             null paths))
 
+      (define (default-calendar)
+         (str (getenv "HOME") "/.kal"))
+
       (define (kal dict args)
-         (let ((args (if (null? args) '("-") args)))
+         (let ((args (if (null? args) (list (default-calendar)) args)))
             (cond
                ((getf dict 'help)
                   (print-usage)

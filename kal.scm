@@ -2,5 +2,4 @@
 
 (import (kal main))
 
-(lambda (args)
-   (main args))
+main
