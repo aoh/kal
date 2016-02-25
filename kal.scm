@@ -99,25 +99,34 @@
        (n get-nat))
       (tuple 'week n)))
 
+(define get-day-number
+   (get-any-of 
+      (get-word "maanantai" 1) 
+      (get-word "tiistai" 2)
+      (get-word "keskiviikko" 3)
+      (get-word "torstai" 4)
+      (get-word "perjantai" 5)
+      (get-word "lauantai" 6)
+      (get-word "sunnuntai" 7)
+      (get-word-ci "monday" 1)
+      (get-word-ci "tuesday" 2)
+      (get-word-ci "wednesday" 3)
+      (get-word-ci "thursday" 4)
+      (get-word-ci "friday" 5)
+      (get-word-ci "saturday" 6)
+      (get-word-ci "sunday" 7)
+      (get-word "ma" 1)
+      (get-word "ti" 2)
+      (get-word "ke" 3)
+      (get-word "to" 4)
+      (get-word "pe" 5)
+      (get-word "la" 6)
+      (get-word "su" 7)))
+
 (define get-day-name
    (let-parses
       ((skip maybe-whitespace)
-       (day
-          (get-any-of
-            (get-word "maanantai" 1)
-            (get-word "tiistai" 2)
-            (get-word "keskiviikko" 3)
-            (get-word "torstai" 4)
-            (get-word "perjantai" 5)
-            (get-word "lauantai" 6)
-            (get-word "sunnuntai" 7)
-            (get-word "ma" 1)
-            (get-word "ti" 2)
-            (get-word "ke" 3)
-            (get-word "to" 4)
-            (get-word "pe" 5)
-            (get-word "la" 6)
-            (get-word "su" 7))))
+       (day get-day-number))
       (tuple 'week-day day)))
 
 (define get-week-info
@@ -147,24 +156,46 @@
        (line get-line))
       (cons date line)))
 
+(define get-yearly-rec
+   (let-parses
+      ((skip maybe-whitespace)
+       (skip (get-word "year" 0))
+       (skip maybe-whitespace)
+       (skip (get-either (get-word "at" 0) (get-word "on" 0)))
+       (skip maybe-whitespace)
+       (d get-nat) (skip (get-imm #\.))
+       (m get-nat) (skip (get-imm #\.)))
+      (tuple 'yearly d m)))
 
-;; a simple case at first
+;; every year [in | of | on | during] d.m.
+;; D = dayname | day
+;; I = in | of | during
+;; every D (and D)* (I month (and month)* |
+;;                   I (odd | even) weeks)
+
+(define get-daily-rec
+   (let-parses
+      ((skip maybe-whitespace)
+       (day 
+         (get-either 
+            get-day-number
+            (get-word "day" #false)))) ;; every weekday, possibly further criteria follow
+      (tuple 'daily day)))
+
 (define get-recurring 
    (let-parses
       ((skip maybe-whitespace)
        (skip (get-word "every" 42))
        (skip maybe-whitespace)
-       (skip (get-word "year" 'year))
-       (skip maybe-whitespace)
-       (skip (get-either (get-word "at" 0) (get-word "on" 0)))
-       (skip maybe-whitespace)
-       (d get-nat) (skip (get-imm #\.))
-       (m get-nat) (skip (get-imm #\.))
+       (rec
+          (get-any-of
+             get-yearly-rec
+             get-daily-rec))
        (skip maybe-whitespace)
        (skip (get-imm #\:))
        (skip maybe-whitespace)
        (evt get-line))
-      (list (tuple 'recurring (tuple 'yearly d m) evt))))
+      (list (tuple 'recurring rec evt))))
 
 (define get-day
    (let-parses
@@ -232,10 +263,20 @@
    (lets ((_ d m y wd w date))
       (print d "." m "." y " " (ref day-names-fi wd) " week " w)))
 
-;; fixed-ish for now
+(define (repetition-str rep)
+   (tuple-case rep
+      ((yearly d m)
+         (str "year on " d "." m "."))
+      ((daily d)
+         (if (number? d)
+            (ref day-names-fi d)
+            (error "cannot convert to daily repeptition yet: " d)))
+      (else
+         (error "odd repetition " rep))))
+
 (define (print-recurring rec)
    (lets ((_ when evt rec))
-      (print "every year on " (ref when 2) "." (ref when 3) ".: " evt)))
+      (print "every " (repetition-str when) ": " evt)))
 
 (define (date-of x)
    (lets 
@@ -247,6 +288,8 @@
    (tuple-case rec
       ((yearly d m)
          (and (= m (month-of date)) (= d (day-of date))))
+      ((daily d)
+         (= d (day-of date)))
       (else
          (error "match-date: what recurrence is " rec))))
 
