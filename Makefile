@@ -3,3 +3,6 @@ kal: kal.c
 
 kal.c: kal.scm
 	ol -O1 -o kal.c kal.scm
+
+test: kal
+	tests/check.sh ./kal

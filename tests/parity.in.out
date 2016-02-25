@@ -1,0 +1,29 @@
+1.1.1970, Thursday, week 1
+ - odd always
+
+2.1.1970, Friday, week 1
+ - odd always
+
+3.1.1970, Saturday, week 1
+ - odd always
+
+4.1.1970, Sunday, week 1
+ - odd always
+
+7.1.1970, Wednesday, week 2
+ - even Wednesday
+
+12.1.1970, Monday, week 3
+ - odd always
+
+13.1.1970, Tuesday, week 3
+ - odd always
+
+14.1.1970, Wednesday, week 3
+ - odd always
+
+15.1.1970, Thursday, week 3
+ - odd always
+
+every day in odd weeks: odd always
+every Wednesday in even weeks: even Wednesday

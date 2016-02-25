@@ -48,6 +48,7 @@
    (or (eq? x #\space) 
        (eq? x #\newline)
        (eq? x #\tab)
+       (eq? x #\,)
        (eq? x #\return)))
 
 (define maybe-whitespace
@@ -251,7 +252,7 @@
 (define command-line-rules
    (cl-rules
       `((date "-t" "--time" cook ,string->integer
-            comment "use given current posix time")
+            comment "use given instead of current unix time")
         (help "-h" "--help"))))
 
 (define usage-text 
@@ -284,7 +285,7 @@
 
 (define (print-date date)
    (lets ((_ d m y wd w date))
-      (print d "." m "." y " " (ref day-names-fi wd) " week " w)))
+      (print d "." m "." y ", " (ref day-names-en wd) ", week " w)))
 
 (define (repetition-str rep)
    (tuple-case rep
@@ -292,7 +293,7 @@
          (str "year on " d "." m "."))
       ((daily d)
          (if (number? d)
-            (ref day-names-fi d)
+            (ref day-names-en d)
             (error "cannot convert to daily repeptition yet: " d)))
       ((always)
          "day")
@@ -396,20 +397,21 @@
       null paths))
 
 (define (kal dict args)
-   (cond
-      ((getf dict 'help)
-         (print-usage)
-         0)
-      ((null? args)
-         (print "dict: " dict)
-         (print "args: " args)
-         0)
-      ((kal-read-files args) =>
-         (lambda (evs)
-            (kal-output evs dict)
-            0))
-      (else
-         1)))
+   (let ((args (if (null? args) '("-") args)))
+      (cond
+         ((getf dict 'help)
+            (print-usage)
+            0)
+         ((null? args)
+            (print "dict: " dict)
+            (print "args: " args)
+            0)
+         ((kal-read-files args) =>
+            (lambda (evs)
+               (kal-output evs dict)
+               0))
+         (else
+            1))))
 
 (lambda (args)
    (process-arguments (cdr args) command-line-rules usage-text kal))
