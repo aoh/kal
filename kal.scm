@@ -20,6 +20,8 @@
 (define (day-of x) (ref x 2))
 (define (month-of x) (ref x 3))
 (define (year-of x) (ref x 4))
+(define (week-day-of x) (ref x 5))
+(define (week-of x) (ref x 6))
 
 (define (date? x) 
    (and (tuple? x) (eq? (ref x 1) 'date)))
@@ -173,14 +175,35 @@
 ;; every D (and D)* (I month (and month)* |
 ;;                   I (odd | even) weeks)
 
+(define get-recurrence-start
+   (let-parses
+      ((skip maybe-whitespace)
+       (skip (get-any-of (get-word "in" 0) (get-word "at" 0) (get-word "of" 0) (get-word "on" 0) (get-word "during" 0) (get-word "every" 0))))
+      0))
+
+(define get-recurrence-weeks
+   (let-parses
+      ((skip get-recurrence-start)
+       (skip maybe-whitespace)
+       (parity (get-either (get-word "odd" 'odd) (get-word "even" 'even)))
+       (skip maybe-whitespace)
+       (skip (get-word "weeks" 0))) ;; could also be others, but this is most essential
+      (tuple 'week-parity parity)))
+
 (define get-daily-rec
    (let-parses
       ((skip maybe-whitespace)
        (day 
          (get-either 
             get-day-number
-            (get-word "day" #false)))) ;; every weekday, possibly further criteria follow
-      (tuple 'daily day)))
+            (get-word "day" #false))) ;; every weekday, possibly further criteria follow
+       (crits
+         (get-greedy*
+            get-recurrence-weeks)))
+      (fold
+         (λ (crit next) (tuple 'and crit next))
+         (if day (tuple 'daily day) (tuple 'always))
+         crits)))
 
 (define get-recurring 
    (let-parses
@@ -271,6 +294,12 @@
          (if (number? d)
             (ref day-names-fi d)
             (error "cannot convert to daily repeptition yet: " d)))
+      ((always)
+         "day")
+      ((week-parity which)
+         (str "in " which " weeks"))
+      ((and a b)
+         (str (repetition-str a) " " (repetition-str b)))
       (else
          (error "odd repetition " rep))))
 
@@ -289,7 +318,16 @@
       ((yearly d m)
          (and (= m (month-of date)) (= d (day-of date))))
       ((daily d)
-         (= d (day-of date)))
+         (= d (week-day-of date)))
+      ((always)
+         #true)
+      ((week-parity which)
+         (if (eq? which 'even)
+            (even? (week-of date))
+            (odd? (week-of date))))
+      ((and a b)
+         (and (match-date? date a)
+              (match-date? date b)))
       (else
          (error "match-date: what recurrence is " rec))))
 
