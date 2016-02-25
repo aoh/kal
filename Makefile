@@ -12,7 +12,7 @@ bin/kal: kal.c
 	$(CC) $(CFLAGS) -o bin/kal kal.c
 	make test
 
-kal.c: kal.scm
+kal.c: kal.scm kal/parse.scm kal/main.scm
 	ol $(OFLAGS) -o kal.c kal.scm
 
 test: bin/kal
