@@ -41,11 +41,13 @@
          (cl-rules
             `((date "-t" "--time" cook ,string->integer
                   comment "use given instead of current unix time")
-              (days "-d" "--days" cook ,string->integer
+              (days "-n" "--days" cook ,string->integer
                   comment "number of days to show"
                   default "3")
               (show-recurs "-r" "--show-recurs"
                   comment "show also rules of recurring events")
+              (show-comments "-c" "--show-comments"
+                  comment "show comment lines")
               (help "-h" "--help"))))
 
       (define usage-text 
@@ -141,12 +143,36 @@
             (add-recurrences-on date recs
                (recurring-events (step date) last recs))))
 
+      (define (grab lst pred)
+         (let loop ((lst lst) (match null) (nonmatch null))
+            (cond
+               ((null? lst)
+                  (values (reverse match) (reverse nonmatch)))
+               ((pred (car lst))
+                  (loop (cdr lst) (cons (car lst) match) nonmatch))
+               (else
+                  (loop (cdr lst) match (cons (car lst) nonmatch))))))
+
+      (define (comment? node)
+         (and (tuple? node) (eq? (ref node 1) 'comment)))
+
+      (define (leading-comments lst)
+         (cond
+            ((null? lst) (values null lst))
+            ((comment? (car lst))
+               (lets ((rest tail (leading-comments (cdr lst))))
+                  (values (cons (car lst) rest) tail)))
+            (else
+               (values null lst))))
+
       (define (kal-output x dict)
          (lets
             ((start-time (get dict 'date (time)))
              (end-time (+ start-time (* day (getf dict 'days))))
              (now (date-of start-time))
              (end (date-of end-time))
+             (prelude-comments x (leading-comments x))
+             (comments x (grab x comment?))
              (evs 
                (keep 
                   (lambda (x) 
@@ -161,7 +187,9 @@
                   (append 
                      (recurring-events now end recs)
                      evs))))
-
+            
+            (if (getf dict 'show-comments)
+               (for-each (lambda (comm) (print (ref comm 2))) prelude-comments))
             (fold
                (lambda (date evt)
                   (if (not (equal? date (car evt)))
@@ -172,12 +200,14 @@
                   (print (cdr evt))
                   (car evt))
                #false evs)
-         (if (getf dict 'show-recurs)
-            (let ((recurs (remove pair? x)))
-               (if (pair? recurs)
-                  (begin
-                     (print "")
-                     (for-each print-recurring recurs)))))))
+            (if (getf dict 'show-recurs)
+               (let ((recurs (remove pair? x)))
+                  (if (pair? recurs)
+                     (begin
+                        (print "")
+                        (for-each print-recurring recurs)))))
+            (if (getf dict 'show-comments)
+               (for-each (lambda (comm) (print (ref comm 2))) comments))))
 
       (define (kal-read-files paths)
          (fold
