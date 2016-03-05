@@ -175,10 +175,8 @@
          (if (date< a b) b a))
 
       (define (last-date d all)
-         (print "Computing last date")
          (fold
             (λ (d node)
-               (print "Looking at " node " vs max " d)
                (if (event? node)
                   (date-max d (event-date node))
                   d))

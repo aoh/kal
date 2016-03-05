@@ -1,8 +1,3 @@
-Computing last date
-Looking at #[comment # flags: -t 0 -e] vs max #[date 4 1 1970 7 1]
-Looking at #[event #[date 12 1 1970 1 3] this is the last day] vs max #[date 4 1 1970 7 1]
-Looking at #[event #[date 1 1 1970 4 1] first post!] vs max #[date 12 1 1970 1 3]
-Looking at #[recurring #[and #[daily 4] #[week-parity even]] it's even Thursday, shown up to 12.1.] vs max #[date 12 1 1970 1 3]
 1.1.1970, Thursday, week 1
  - first post!
 
