@@ -200,6 +200,18 @@
                               out
                               (cons "" out)))))))))
 
+      (define (remove-duplicates lst)
+         (if (null? lst)
+            null
+            (let loop ((a (car lst)) (lst (cdr lst)))
+               (cond 
+                  ((null? lst)
+                     (list a))
+                  ((equal? a (car lst))
+                     (loop a (cdr lst)))
+                  (else
+                     (cons a (loop (car lst) (cdr lst))))))))
+
       (define (kal-output-ll all dict)
          (if (null? all)
             null
@@ -226,7 +238,9 @@
                 (recs (remove event? all))
                 (evs 
                   (sort-events 
-                     (append (recurring-events now end recs) evs))))
+                     (append (recurring-events now end recs) evs)))
+                (evs (remove-duplicates evs)))
+
                (append
                   (merge-same-day-events evs 
                      (reverse
@@ -255,8 +269,9 @@
                               (put 'show-recurs 1)))
                    (res (kal-output-ll es args)))
                   (list->string
-                     (foldr append null
-                        (map string->list res))))
+                     (foldr append (list #\newline)
+                        (interleave (list #\newline)
+                           (map string->list res)))))
                #false)))
 
       (define (kal-output all dict)
