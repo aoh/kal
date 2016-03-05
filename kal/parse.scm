@@ -39,7 +39,7 @@
 
       (define ws-newline
          (let-parses
-            ((skip (get-greedy* (get-imm #\space))))
+            ((skip (get-greedy* (get-byte-if (lambda (x) (and (whitespace? x) (not (eq? x #\newline))))))))
             42))
 
       (define (ascii-digit? x)
