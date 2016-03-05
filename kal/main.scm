@@ -48,6 +48,8 @@
                   comment "show also rules of recurring events")
               (show-comments "-c" "--show-comments"
                   comment "show comment lines")
+              (everything "-e" "--everything"
+                  comment "show all days up to -n or last written down event")
               (help "-h" "--help"))))
 
       (define usage-text 
@@ -56,7 +58,6 @@
       (define (print-usage)
          (print usage-text)
          (print (format-rules command-line-rules)))
-
 
       ;; any way to order first by year, then month. then day
       (define (date->scalar d)
@@ -165,29 +166,47 @@
             (else
                (values null lst))))
 
-      (define (kal-output x dict)
+      (define (date-max a b)
+         (if (date< a b) b a))
+
+      (define (last-date d all)
+         (fold
+            (λ (d node)
+               (if (pair? node)
+                  (date-max d (car node))
+                  d))
+            d all))
+
+      (define (kal-output all dict)
          (lets
             ((start-time (get dict 'date (time)))
-             (end-time (+ start-time (* day (getf dict 'days))))
+             (chosen-end-time 
+               (+ start-time (* day (getf dict 'days))))
+             (end-time
+               (if (getf dict 'everything)
+                  (date-max chosen-end-time
+                     (last-date chosen-end-time all))
+                  chosen-end-time))
              (now (date-of start-time))
              (end (date-of end-time))
-             (prelude-comments x (leading-comments x))
-             (comments x (grab x comment?))
+             (prelude-comments all (leading-comments all))
+             (comments all (grab all comment?))
              (evs 
                (keep 
                   (lambda (x) 
                      (and 
                         (date<= now (car x))
-                        (date< (car x) end)))
-                  (keep pair? x)))
+                        (if (getf dict 'everything)
+                           #true
+                           (date< (car x) end))))
+                  (keep pair? all)))
              (recs
-               (remove pair? x))
+               (remove pair? all))
              (evs 
                (sort-events 
                   (append 
                      (recurring-events now end recs)
                      evs))))
-            
             (if (getf dict 'show-comments)
                (for-each (lambda (comm) (print (ref comm 2))) prelude-comments))
             (fold
@@ -201,11 +220,10 @@
                   (car evt))
                #false evs)
             (if (getf dict 'show-recurs)
-               (let ((recurs (remove pair? x)))
-                  (if (pair? recurs)
-                     (begin
-                        (print "")
-                        (for-each print-recurring recurs)))))
+               (if (pair? recs)
+                  (begin
+                     (print "")
+                     (for-each print-recurring recs))))
             (if (getf dict 'show-comments)
                (for-each (lambda (comm) (print (ref comm 2))) comments))))
 
