@@ -1,7 +1,8 @@
 (define-library (kal parse)
 
    (export 
-      kal-parse)
+      kal-parse
+      kal-parse-string)
 
    (import
       (owl base)
@@ -237,6 +238,9 @@
                      get-comment)))
              (tail maybe-whitespace))
             (foldr append null days)))
+
+      (define (kal-parse-string str)
+         (try-parse kal-grammar (string->list str) #false #false #false))
 
       (define (kal-parse path)
          (let ((data (file->list path)))

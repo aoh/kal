@@ -9,6 +9,7 @@
       (owl args))
 
    (export 
+      kal-string
       main)
 
    (begin
@@ -184,65 +185,79 @@
                   d))
             d all))
 
-      (define (kal-output-ll all dict)
-         (lets
-            ((start-time (get dict 'date (time)))
-             (chosen-end-time 
-               (+ start-time (* day (getf dict 'days))))
-             (end (date-of chosen-end-time))
-             (end
-               (if (getf dict 'everything)
-                  (date-max end (last-date end all))
-                  end))
-             (now (date-of start-time))
-             (prelude-comments all (leading-comments all))
-             (comments all (grab all comment?))
-             (evs 
-               (keep 
-                  (lambda (x) 
-                     (and 
-                        (date<= now (event-date x))
-                        (if (getf dict 'everything)
-                           #true
-                           (date< (event-date x) end))))
-                  (keep event? all)))
-             (recs
-               (remove event? all))
-             (evs 
-               (sort-events 
-                  (append 
-                     (recurring-events now end recs)
-                     evs))))
+      (define (merge-same-day-events evs tail)
+         (let loop ((evs evs) (last #false) (out tail))
+            (if (null? evs)
+               (reverse out)
+               (let 
+                  ((this (event-date (car evs)))
+                   (info (str " - " (event-info (car evs)))))
+                  (loop (cdr evs) this
+                     (if (equal? last this)
+                        (cons info out)
+                        (ilist info (format-date this) 
+                           (if (null? out)
+                              out
+                              (cons "" out)))))))))
 
-            (define (merge-same-day-events evs tail)
-               (let loop ((evs evs) (last #false) (out tail))
-                  (if (null? evs)
-                     (reverse out)
-                     (let 
-                        ((this (event-date (car evs)))
-                         (info (str " - " (event-info (car evs)))))
-                        (loop (cdr evs) this
-                           (if (equal? last this)
-                              (cons info out)
-                              (ilist info (format-date this) 
-                                 (if (null? out)
-                                    out
-                                    (cons "" out)))))))))
-                        
-            (append
-               (merge-same-day-events evs 
-                  (reverse
-                     (if (getf dict 'show-comments)
-                        (map (lambda (comm) (ref comm 2)) prelude-comments)
-                        null)))
-               (if (getf dict 'show-recurs)
-                  (if (pair? recs)
-                     (cons ""
-                        (map format-recurring recs)))
-                  null)
-               (if (getf dict 'show-comments)
-                  (map (lambda (comm) (ref comm 2)) comments)
-                  null))))
+      (define (kal-output-ll all dict)
+         (if (null? all)
+            null
+            (lets
+               ((start-time (get dict 'date (time)))
+                (chosen-end-time 
+                  (+ start-time (* day (getf dict 'days))))
+                (end (date-of chosen-end-time))
+                (end
+                  (if (getf dict 'everything)
+                     (date-max end (last-date end all))
+                     end))
+                (now (date-of start-time))
+                (prelude-comments all (leading-comments all))
+                (comments all (grab all comment?))
+                (evs 
+                  (keep 
+                     (lambda (x) 
+                        (and (date<= now (event-date x))
+                           (if (getf dict 'everything)
+                              #true
+                              (date< (event-date x) end))))
+                     (keep event? all)))
+                (recs (remove event? all))
+                (evs 
+                  (sort-events 
+                     (append (recurring-events now end recs) evs))))
+               (append
+                  (merge-same-day-events evs 
+                     (reverse
+                        (if (getf dict 'show-comments)
+                           (map (lambda (comm) (ref comm 2)) prelude-comments)
+                           null)))
+                  (if (getf dict 'show-recurs)
+                     (if (pair? recs)
+                        (cons ""
+                           (map format-recurring recs))
+                        null)
+                     null)
+                  (if (getf dict 'show-comments)
+                     (map (lambda (comm) (ref comm 2)) comments)
+                     null)))))
+
+      ;; todo: return also error info
+      (define (kal-string str)
+         (let ((es (kal-parse-string str)))
+            (if es
+               (lets
+                  ((args (-> empty
+                              (put 'everything 1)
+                              (put 'days 8)
+                              (put 'show-comments 1)
+                              (put 'show-recurs 1)))
+                   (res (kal-output-ll es args)))
+                  (list->string
+                     (foldr append null
+                        (map string->list res))))
+               #false)))
 
       (define (kal-output all dict)
          (lfold
