@@ -35,4 +35,8 @@ get-owl:
 clean:
 	-rm -f kal.c
 
+mrproper:
+	make clean
+	-rm -rf owl-lisp-*
+
 .phony: test
