@@ -13,7 +13,7 @@
 
    (begin
 
-      (define version "0.1")
+      (define version "0.1a")
 
       ;; date = (tuple 'date d m y wday week)
 
@@ -57,6 +57,8 @@
                   comment "show comment lines")
               (everything "-e" "--everything"
                   comment "show all days up to -n or last written down event")
+              (version "-V" "--version"
+                  comment "show version")
               (help "-h" "--help"))))
 
       ;; these ought to be autocomputed
@@ -85,9 +87,9 @@
             (lambda (a b) (date< (event-date a) (event-date b)))
             evs))
 
-      (define (print-date date)
+      (define (format-date date)
          (lets ((_ d m y wd w date))
-            (print d "." m "." y ", " (ref day-names-en wd) ", week " w)))
+            (str d "." m "." y ", " (ref day-names-en wd) ", week " w)))
 
       (define (repetition-str rep)
          (tuple-case rep
@@ -106,9 +108,9 @@
             (else
                (error "odd repetition " rep))))
 
-      (define (print-recurring rec)
+      (define (format-recurring rec)
          (lets ((_ when evt rec))
-            (print "every " (repetition-str when) ": " evt)))
+            (str "every " (repetition-str when) ": " evt)))
 
       (define (date-of x)
          (lets 
@@ -182,7 +184,7 @@
                   d))
             d all))
 
-      (define (kal-output all dict)
+      (define (kal-output-ll all dict)
          (lets
             ((start-time (get dict 'date (time)))
              (chosen-end-time 
@@ -212,28 +214,41 @@
                      (recurring-events now end recs)
                      evs))))
 
-            (if (getf dict 'show-comments)
-               (for-each (lambda (comm) (print (ref comm 2))) prelude-comments))
+            (define (merge-same-day-events evs tail)
+               (let loop ((evs evs) (last #false) (out tail))
+                  (if (null? evs)
+                     (reverse out)
+                     (let 
+                        ((this (event-date (car evs)))
+                         (info (str " - " (event-info (car evs)))))
+                        (loop (cdr evs) this
+                           (if (equal? last this)
+                              (cons info out)
+                              (ilist info (format-date this) 
+                                 (if (null? out)
+                                    out
+                                    (cons "" out)))))))))
+                        
+            (append
+               (merge-same-day-events evs 
+                  (reverse
+                     (if (getf dict 'show-comments)
+                        (map (lambda (comm) (ref comm 2)) prelude-comments)
+                        null)))
+               (if (getf dict 'show-recurs)
+                  (if (pair? recs)
+                     (cons ""
+                        (map format-recurring recs)))
+                  null)
+               (if (getf dict 'show-comments)
+                  (map (lambda (comm) (ref comm 2)) comments)
+                  null))))
 
-            (fold
-               (lambda (date evt)
-                  (if (not (equal? date (event-date evt)))
-                     (begin
-                        (if date (print ""))
-                        (print-date (event-date evt))))
-                  (display " - ")
-                  (print (event-info evt))
-                  (event-date evt))
-               #false evs)
-
-            (if (getf dict 'show-recurs)
-               (if (pair? recs)
-                  (begin
-                     (print "")
-                     (for-each print-recurring recs))))
-
-            (if (getf dict 'show-comments)
-               (for-each (lambda (comm) (print (ref comm 2))) comments))))
+      (define (kal-output all dict)
+         (lfold
+            (λ (state line)
+               (print line))
+            null (kal-output-ll all dict)))
 
       (define (kal-read-files paths)
          (fold
@@ -252,6 +267,9 @@
             (cond
                ((getf dict 'help)
                   (print-usage)
+                  0)
+               ((getf dict 'version)
+                  (print version)
                   0)
                ((null? args)
                   (print "dict: " dict)
