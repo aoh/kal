@@ -10,4 +10,10 @@ do
    diff $foo.out tests/out || exit 1
 done
 
+for foo in tests/*.bad
+do
+  echo " - $@ $foo"
+  $@ $foo > /dev/null 2>&1 && echo 'Failed to fail' && exit 1
+done
+
 rm tests/out
