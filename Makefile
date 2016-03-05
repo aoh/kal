@@ -9,6 +9,9 @@ CC?=gcc
 OWLVERSION=0.1.11
 OWL=owl-lisp-$(OWLVERSION)/bin/vm owl-lisp-$(OWLVERSION)/fasl/init.fasl
 
+# If you already have owl, you can use it to build with 
+#    $ make OWL=/usr/bin/ol
+
 bin/kal: kal.c
 	-mkdir -p bin
 	$(CC) $(CFLAGS) -o bin/kal kal.c
@@ -39,4 +42,4 @@ mrproper:
 	make clean
 	-rm -rf owl-lisp-*
 
-.phony: test
+.PHONY: test clean mrproper uninstall install get-owl
