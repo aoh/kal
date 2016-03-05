@@ -207,8 +207,17 @@
          (let-parses
             ((skip maybe-whitespace)
              (d get-date-info)
-             (skip (get-imm #\newline))
-             (es (get-greedy* (get-event d))))
+             (es
+               (get-either
+                  (let-parses
+                     ((skip (get-imm #\newline))
+                      (es (get-greedy* (get-event d))))
+                     es)
+                  (let-parses
+                     ((skip (get-imm #\: ))
+                      (skip maybe-whitespace)
+                      (evt get-line))
+                     (list (tuple 'event d evt))))))
             es))
 
       (define get-comment 
