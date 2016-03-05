@@ -83,9 +83,24 @@
       (define (date<= a b)  
          (<= (date->scalar a) (date->scalar b)))
 
+      (define (lex< a b)
+         (cond
+            ((null? a) (not (null? a)))
+            ((null? b) #false)
+            ((= (car a) (car b)) (lex< (cdr a) (cdr b)))
+            ((< (car a) (car b)) #true)
+            (else #false)))
+         
       (define (sort-events evs)
          (sort 
-            (lambda (a b) (date< (event-date a) (event-date b)))
+            (lambda (a b) 
+               (cond
+                  ((equal? (event-date a) (event-date b))
+                     (lex< (string->list (event-info a)) 
+                           (string->list (event-info b))))
+                  ((date< (event-date a) (event-date b))
+                     #true)
+                  (else #false)))
             evs))
 
       (define (format-date date)
