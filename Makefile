@@ -6,6 +6,8 @@ INSTALL?=install
 CFLAGS?=-Wall -O2
 OFLAGS?=-O1
 CC?=gcc
+OWLVERSION=0.1.11
+OWL=owl-lisp-$(OWLVERSION)/bin/vm owl-lisp-$(OWLVERSION)/fasl/init.fasl
 
 bin/kal: kal.c
 	-mkdir -p bin
@@ -13,7 +15,8 @@ bin/kal: kal.c
 	make test
 
 kal.c: kal.scm kal/parse.scm kal/main.scm
-	ol $(OFLAGS) -o kal.c kal.scm
+	$(OWL) --version || make get-owl
+	$(OWL) $(OFLAGS) -o kal.c kal.scm
 
 test: bin/kal
 	tests/check.sh bin/kal
@@ -24,6 +27,10 @@ install: bin/kal
 
 uninstall:
 	-rm -f $(DESTDIR)$(PREFIX)$(BINDIR)/kal
+
+get-owl:
+	test -d owl-lisp-$(OWLVERSION) || curl -L https://github.com/aoh/owl-lisp/archive/v$(OWLVERSION).tar.gz | tar -zxvf -
+	cd owl-lisp-$(OWLVERSION) && make bin/vm
 
 clean:
 	-rm -f kal.c
