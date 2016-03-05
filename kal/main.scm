@@ -34,6 +34,13 @@
       (define (date? x) 
          (and (tuple? x) (eq? (ref x 1) 'date)))
 
+      (define (event? node)
+         (tuple-case node
+            ((event when evt) #true)
+            (else #false)))
+
+      (define (event-date x) (ref x 2))
+      (define (event-info x) (ref x 3))
 
       ;;;
 
@@ -52,6 +59,7 @@
                   comment "show all days up to -n or last written down event")
               (help "-h" "--help"))))
 
+      ;; these ought to be autocomputed
       (define usage-text 
          "Usage: kal ...")
 
@@ -72,11 +80,9 @@
       (define (date<= a b)  
          (<= (date->scalar a) (date->scalar b)))
 
-
-      ;; ((date . evt) ...)
       (define (sort-events evs)
          (sort 
-            (lambda (a b) (date< (car a) (car b)))
+            (lambda (a b) (date< (event-date a) (event-date b)))
             evs))
 
       (define (print-date date)
@@ -130,9 +136,8 @@
 
       (define (cons-happening-on date)
          (lambda (evs recurring)
-            ;(print "Checking if " recurring " happens on " date)
             (if (match-date? date (ref recurring 2))
-               (cons (cons date (ref recurring 3)) evs)
+               (cons (tuple 'event date (ref recurring 3)) evs)
                evs)))
 
       (define (add-recurrences-on date recs tail)
@@ -170,10 +175,12 @@
          (if (date< a b) b a))
 
       (define (last-date d all)
+         (print "Computing last date")
          (fold
             (λ (d node)
-               (if (pair? node)
-                  (date-max d (car node))
+               (print "Looking at " node " vs max " d)
+               (if (event? node)
+                  (date-max d (event-date node))
                   d))
             d all))
 
@@ -182,48 +189,51 @@
             ((start-time (get dict 'date (time)))
              (chosen-end-time 
                (+ start-time (* day (getf dict 'days))))
-             (end-time
+             (end (date-of chosen-end-time))
+             (end
                (if (getf dict 'everything)
-                  (date-max chosen-end-time
-                     (last-date chosen-end-time all))
-                  chosen-end-time))
+                  (date-max end (last-date end all))
+                  end))
              (now (date-of start-time))
-             (end (date-of end-time))
              (prelude-comments all (leading-comments all))
              (comments all (grab all comment?))
              (evs 
                (keep 
                   (lambda (x) 
                      (and 
-                        (date<= now (car x))
+                        (date<= now (event-date x))
                         (if (getf dict 'everything)
                            #true
-                           (date< (car x) end))))
-                  (keep pair? all)))
+                           (date< (event-date x) end))))
+                  (keep event? all)))
              (recs
-               (remove pair? all))
+               (remove event? all))
              (evs 
                (sort-events 
                   (append 
                      (recurring-events now end recs)
                      evs))))
+
             (if (getf dict 'show-comments)
                (for-each (lambda (comm) (print (ref comm 2))) prelude-comments))
+
             (fold
                (lambda (date evt)
-                  (if (not (equal? date (car evt)))
+                  (if (not (equal? date (event-date evt)))
                      (begin
                         (if date (print ""))
-                        (print-date (car evt))))
+                        (print-date (event-date evt))))
                   (display " - ")
-                  (print (cdr evt))
-                  (car evt))
+                  (print (event-info evt))
+                  (event-date evt))
                #false evs)
+
             (if (getf dict 'show-recurs)
                (if (pair? recs)
                   (begin
                      (print "")
                      (for-each print-recurring recs))))
+
             (if (getf dict 'show-comments)
                (for-each (lambda (comm) (print (ref comm 2))) comments))))
 
@@ -231,7 +241,6 @@
          (fold
             (lambda (cals file)
                (let ((this (kal-parse file)))
-                  ;(print "this is " this)
                   (if (and this cals)
                      (append cals this)
                      #false)))

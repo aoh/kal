@@ -1,2 +1,3 @@
+# flags: -t 0 -n 15
 every day on odd weeks: odd always
 every Wednesday on even weeks: even Wednesday

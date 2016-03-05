@@ -139,7 +139,7 @@
              (skip (get-imm #\-))
              (skip (get-imm #\space))
              (line get-line))
-            (cons date line)))
+            (tuple 'event date line)))
 
       (define get-yearly-rec
          (let-parses
