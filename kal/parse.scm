@@ -2,6 +2,7 @@
 
    (export 
       kal-parse
+      kal-parse-list
       kal-parse-string)
 
    (import
@@ -130,7 +131,7 @@
 
       (define get-line
          (let-parses
-            ((rs (get-greedy* (get-rune-if (lambda (x) (not (eq? x #\newline))))))
+            ((rs (get-greedy* (get-byte-if (lambda (x) (not (eq? x #\newline))))))
              (skip (get-imm #\newline)))
             (list->string rs)))
 
@@ -239,8 +240,12 @@
              (tail maybe-whitespace))
             (foldr append null days)))
 
+      (define (kal-parse-list lst)
+         (try-parse kal-grammar lst #false "bad grammar" #false))
+
       (define (kal-parse-string str)
-         (try-parse kal-grammar (string->list str) #false #false #false))
+         (kal-parse-list 
+            (string->list str)))
 
       (define (kal-parse path)
          (let ((data (file->list path)))

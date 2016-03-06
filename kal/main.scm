@@ -4,6 +4,7 @@
       (only (owl sys) getenv)
       (owl base)
       (owl parse)
+      (owl unicode)
       (owl date)
       (kal parse)
       (owl args))
@@ -255,7 +256,6 @@
                   (sort-events 
                      (append (recurring-events now end recs) evs)))
                 (evs (remove-duplicates evs)))
-
                (append
                   (merge-same-day-events evs 
                      (reverse
@@ -272,9 +272,14 @@
                      (map (lambda (comm) (ref comm 2)) comments)
                      null)))))
 
+      (define (prepare-data data)
+         (if (string? data)
+            (prepare-data (string->list data)))
+            (append (remove (λ (x) (eq? x #\return)) data) '(#\newline)))
+
       ;; todo: return also error info
       (define (kal-string str)
-         (let ((es (kal-parse-string str)))
+         (let ((es (kal-parse-list (prepare-data str))))
             (if es
                (lets
                   ((args (-> empty
@@ -298,7 +303,11 @@
       (define (kal-read-files paths)
          (fold
             (lambda (cals file)
-               (let ((this (kal-parse file)))
+               (lets
+                  ((port (open-input-file file))
+                   (data (and port (port->byte-stream port)))
+                   (runes (and data (force-ll (utf8-decode data))))
+                   (this (and runes (kal-parse-list (prepare-data runes)))))
                   (if (and this cals)
                      (append cals this)
                      #false)))

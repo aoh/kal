@@ -1,0 +1,5 @@
+1.1.1970, Thursday, week 1
+ - foo w/ crlf
+
+2.1.1970, Friday, week 1
+ - bar sans eof newline
