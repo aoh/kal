@@ -274,8 +274,8 @@
 
       (define (prepare-data data)
          (if (string? data)
-            (prepare-data (string->list data)))
-            (append (remove (λ (x) (eq? x #\return)) data) '(#\newline)))
+            (prepare-data (string->list data))
+            (append (remove (λ (x) (eq? x #\return)) data) '(#\newline))))
 
       ;; todo: return also error info
       (define (kal-string str)
