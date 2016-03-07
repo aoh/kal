@@ -40,6 +40,11 @@
          (tuple-case node
             ((event when evt) #true)
             (else #false)))
+      
+      (define (todo? node)
+         (tuple-case node
+            ((todo when evt) #true)
+            (else #false)))
 
       (define (event-date x) (ref x 2))
       (define (event-info x) (ref x 3))
@@ -201,13 +206,18 @@
                   d))
             d all))
 
+      (define (event-tag evt)
+         (if (eq? (ref evt 1) 'todo)
+            " + "
+            " - "))
+
       (define (merge-same-day-events evs tail)
          (let loop ((evs evs) (last #false) (out tail))
             (if (null? evs)
                (reverse out)
                (let 
                   ((this (event-date (car evs)))
-                   (info (str " - " (event-info (car evs)))))
+                   (info (str (event-tag (car evs)) (event-info (car evs)))))
                   (loop (cdr evs) this
                      (if (equal? last this)
                         (cons info out)
@@ -228,6 +238,15 @@
                   (else
                      (cons a (loop (car lst) (cdr lst))))))))
 
+      (define (lift-due-todos lst now)
+         (map
+            (lambda (todo)
+               (lets ((_ when what todo))
+                  (if (date< when now)
+                     (tuple 'todo now what)
+                     (tuple 'todo when what))))
+            lst))
+
       (define (kal-output-ll all dict)
          (if (null? all)
             null
@@ -243,6 +262,7 @@
                 (now (date-of start-time))
                 (prelude-comments all (leading-comments all))
                 (comments all (grab all comment?))
+                (evs all (grab all event?))
                 (evs 
                   (keep 
                      (lambda (x) 
@@ -250,11 +270,18 @@
                            (if (getf dict 'everything)
                               #true
                               (date< (event-date x) end))))
-                     (keep event? all)))
-                (recs (remove event? all))
+                     evs))
+                (todo recs (grab all todo?))
+                (todo 
+                  (if (getf dict 'everything)
+                     todo
+                     (keep (lambda (x) (date< (event-date x) end)) todo)))
                 (evs 
                   (sort-events 
-                     (append (recurring-events now end recs) evs)))
+                     (append 
+                        (recurring-events now end recs)
+                        evs
+                        (lift-due-todos todo now))))
                 (evs (remove-duplicates evs)))
                (append
                   (merge-same-day-events evs 

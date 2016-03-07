@@ -138,10 +138,14 @@
       (define (get-event date)
          (let-parses
             ((skip (get-greedy+ (get-imm #\space)))
-             (skip (get-imm #\-))
+             (type (get-either (get-imm #\-) (get-imm #\+)))
              (skip (get-imm #\space))
              (line get-line))
-            (tuple 'event date line)))
+            (tuple 
+               (if (eq? type #\+)
+                  'todo     ;; automatically moved to next day    
+                  'event)   ;; disappears when the day 
+               date line)))
 
       (define get-yearly-rec
          (let-parses
