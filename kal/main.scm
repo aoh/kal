@@ -257,7 +257,7 @@
                 (end (date-of chosen-end-time))
                 (end
                   (if (getf dict 'everything)
-                     (date-max end (last-date end all))
+                     (step (date-max end (last-date end all)))
                      end))
                 (now (date-of start-time))
                 (prelude-comments all (leading-comments all))
