@@ -6,7 +6,7 @@ INSTALL?=install
 CFLAGS?=-Wall -O2
 OFLAGS?=-O1
 CC?=gcc
-OWLVERSION=0.1.12
+OWLVERSION=0.1.13
 OWL=owl-lisp-$(OWLVERSION)/bin/vm owl-lisp-$(OWLVERSION)/fasl/init.fasl
 
 # If you already have owl, you can use it to build with 
