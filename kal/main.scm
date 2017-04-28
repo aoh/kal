@@ -329,19 +329,19 @@
 
       (define (kal-read-files paths)
          (fold
-            (lambda (cals file)
-               (lets
-                  ((port (open-input-file file))
-                   (data (and port (port->byte-stream port)))
-                   (runes (and data (force-ll (utf8-decode data))))
-                   (this (and runes (kal-parse-list (prepare-data runes)))))
+            (λ (cals file)
+               (if-lets
+                  ((port (if (equal? file "-") stdin (open-input-file file)))
+                   (data (port->byte-stream port))
+                   (runes (force-ll (utf8-decode data)))
+                   (this (kal-parse-list (prepare-data runes))))
                   (if (and this cals)
                      (append cals this)
                      #false)))
             null paths))
 
       (define (default-calendar)
-         (str (getenv "HOME") "/.kal"))
+         (str (or (getenv "HOME") ".") "/.kal"))
 
       (define (kal dict args)
          (let ((args (if (null? args) (list (default-calendar)) args)))
@@ -352,12 +352,8 @@
                ((getf dict 'version)
                   (print version)
                   0)
-               ((null? args)
-                  (print "dict: " dict)
-                  (print "args: " args)
-                  0)
                ((kal-read-files args) =>
-                  (lambda (evs)
+                  (λ(evs)
                      (kal-output evs dict)
                      0))
                (else
