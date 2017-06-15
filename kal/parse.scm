@@ -40,7 +40,7 @@
 
       (define ws-newline
          (let-parses
-            ((skip (get-greedy* (get-byte-if (lambda (x) (and (whitespace? x) (not (eq? x #\newline))))))))
+            ((skip (get-greedy* (get-byte-if (λ (x) (and (whitespace? x) (not (eq? x #\newline))))))))
             42))
 
       (define (ascii-digit? x)
@@ -131,7 +131,7 @@
 
       (define get-line
          (let-parses
-            ((rs (get-greedy* (get-byte-if (lambda (x) (not (eq? x #\newline))))))
+            ((rs (get-greedy* (get-byte-if (λ (x) (not (eq? x #\newline))))))
              (skip (get-imm #\newline)))
             (list->string rs)))
 
@@ -159,6 +159,7 @@
             (tuple 'yearly d m)))
 
       ;; every year [in | of | on | during] d.m.
+      ;; every [n] days
       ;; D = dayname | day
       ;; I = in | of | during
       ;; every D (and D)* (I month (and month)* |
@@ -194,6 +195,22 @@
                (if day (tuple 'daily day) (tuple 'always))
                crits)))
 
+      (define (wtoken parser)
+         (let-parses
+            ((skip maybe-whitespace)
+             (val parser))
+            val))
+      
+      (define get-daily-interval-rec
+         (let-parses
+            ((interval (wtoken get-nat))
+             (skip (wtoken (get-word "days" #false))))
+            (tuple 'n-days interval)))
+
+      ;; [every] day
+      ;; [every] [n] days
+      ;; [every] <rec> on week 10
+      
       (define get-recurring 
          (let-parses
             ((skip maybe-whitespace)
@@ -202,6 +219,7 @@
              (rec
                 (get-any-of
                    get-yearly-rec
+                   get-daily-interval-rec
                    get-daily-rec))
              (skip maybe-whitespace)
              (skip (get-imm #\:))

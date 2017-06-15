@@ -4,10 +4,10 @@ echo "Running tests"
 
 for foo in tests/*.in
 do
-   FLAGS=$(cat $foo | grep "flags: " | sed -e 's/.*flags: //')
-   echo " - $@ $FLAGS $foo"
-	$@ $FLAGS $foo > tests/out
-   diff $foo.out tests/out || exit 1
+  FLAGS=$(cat $foo | grep "flags: " | sed -e 's/.*flags: //')
+  echo " - $@ $FLAGS $foo"
+  $@ $FLAGS $foo > tests/out
+  diff $foo.out tests/out || exit 1
 done
 
 for foo in tests/*.bad

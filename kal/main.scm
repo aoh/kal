@@ -17,6 +17,7 @@
 
       (define version "0.1a")
 
+
       ;; date = (tuple 'date d m y wday week)
 
       (define (step date)
@@ -46,6 +47,13 @@
             ((todo when evt) #true)
             (else #false)))
 
+      (define (n-day-recurrence? node)
+         (tuple-case node
+            ((recurring rec evt)
+               (eq? 'n-days (ref rec 1)))
+            (else #false)))
+         
+         
       (define (event-date x) (ref x 2))
       (define (event-info x) (ref x 3))
 
@@ -99,7 +107,7 @@
          
       (define (sort-events evs)
          (sort 
-            (lambda (a b) 
+            (λ (a b) 
                (cond
                   ((equal? (event-date a) (event-date b))
                      (lex< (string->list (event-info a)) 
@@ -125,6 +133,8 @@
                "day")
             ((week-parity which)
                (str "in " which " weeks"))
+            ((n-days n)
+               (str n " days"))
             ((and a b)
                (str (repetition-str a) " " (repetition-str b)))
             (else
@@ -159,7 +169,7 @@
                (error "match-date: what recurrence is " rec))))
 
       (define (cons-happening-on date)
-         (lambda (evs recurring)
+         (λ (evs recurring)
             (if (match-date? date (ref recurring 2))
                (cons (tuple 'event date (ref recurring 3)) evs)
                evs)))
@@ -240,13 +250,38 @@
 
       (define (lift-due-todos lst now)
          (map
-            (lambda (todo)
+            (λ (todo)
                (lets ((_ when what todo))
                   (if (date< when now)
                      (tuple 'todo now what)
                      (tuple 'todo when what))))
             lst))
 
+      (define day-seconds
+         (* 24 60 60))
+     
+      (define (ndaily-rec->seconds interval)
+         (tuple-case interval
+            ((n-days n)
+               (* (max 0 (- n 1)) day-seconds))
+            (else 
+               (error "odd interval: " interval))))
+       
+      ;; add todos for events occurring every n days, unless they are already pending to be done
+      (define (new-occurring-dailies n-dailies todo start-time)
+         (fold
+            (λ (out recurring)
+               (tuple-case recurring
+                  ((recurring nday evt)
+                     (if (first (λ (todo) (equal? (ref todo 3) evt)) todo #false)
+                        out
+                        (cons
+                           (tuple 'todo (date-of (+ start-time (ndaily-rec->seconds nday))) evt)
+                           out)))
+                  (else
+                     (error "wat" recurring))))
+            null n-dailies))
+      
       (define (kal-output-ll all dict)
          (if (null? all)
             null
@@ -265,7 +300,7 @@
                 (evs all (grab all event?))
                 (evs 
                   (keep 
-                     (lambda (x) 
+                     (λ (x) 
                         (and (date<= now (event-date x))
                            (if (getf dict 'everything)
                               #true
@@ -275,28 +310,34 @@
                 (todo 
                   (if (getf dict 'everything)
                      todo
-                     (keep (lambda (x) (date< (event-date x) end)) todo)))
+                     (keep (λ (x) (date< (event-date x) end)) todo)))
+                (n-dailies recs 
+                   (grab recs n-day-recurrence?))
+                (occurring-dailies
+                   (new-occurring-dailies n-dailies todo start-time))
                 (evs 
                   (sort-events 
                      (append 
                         (recurring-events now end recs)
                         evs
-                        (lift-due-todos todo now))))
+                        (lift-due-todos 
+                           (append todo occurring-dailies) now))))
                 (evs (remove-duplicates evs)))
                (append
                   (merge-same-day-events evs 
                      (reverse
                         (if (getf dict 'show-comments)
-                           (map (lambda (comm) (ref comm 2)) prelude-comments)
+                           (map (λ (comm) (ref comm 2)) prelude-comments)
                            null)))
                   (if (getf dict 'show-recurs)
-                     (if (pair? recs)
+                     (if (or (pair? recs) (pair? n-dailies))
                         (cons ""
-                           (map format-recurring recs))
+                           (map format-recurring 
+                              (append recs n-dailies)))
                         null)
                      null)
                   (if (getf dict 'show-comments)
-                     (map (lambda (comm) (ref comm 2)) comments)
+                     (map (λ (comm) (ref comm 2)) comments)
                      null)))))
 
       (define (prepare-data data)
