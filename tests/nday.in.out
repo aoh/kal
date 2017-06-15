@@ -1,0 +1,11 @@
+1.1.1970, Thursday, week 1
+ - foo
+
+2.1.1970, Friday, week 1
+ + bar todo
+ + repeating todo
+
+3.1.1970, Saturday, week 1
+ - baz 
+
+every 2 days: repeating todo

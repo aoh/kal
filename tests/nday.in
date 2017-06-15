@@ -1,0 +1,11 @@
+# flags: -t 0 -n 10 -r
+every 2 days: repeating todo
+
+1.1.1970
+ - foo
+ 
+2.1.1970
+ + bar todo
+
+3.1.1970
+ - baz 
