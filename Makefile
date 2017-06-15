@@ -6,8 +6,9 @@ INSTALL?=install
 CFLAGS?=-Wall -O2
 OFLAGS?=-O1
 CC?=gcc
-OWLVERSION=0.1.13
-OWL=owl-lisp-$(OWLVERSION)/bin/vm owl-lisp-$(OWLVERSION)/fasl/init.fasl
+OWLVERSION=0.1.14
+OWLVM=owl-lisp-$(OWLVERSION)/bin/vm
+OWL=$(OWLVM) owl-lisp-$(OWLVERSION)/fasl/init.fasl
 
 # If you already have owl, you can use it to build with 
 #    $ make OWL=/usr/bin/ol
@@ -21,8 +22,15 @@ kal.c: kal.scm kal/parse.scm kal/main.scm
 	$(OWL) --version || make get-owl
 	$(OWL) $(OFLAGS) -o kal.c kal.scm
 
+kal.fasl: kal.scm kal/parse.scm kal/main.scm
+	$(OWL) --version || make get-owl
+	$(OWL) -o kal.fasl kal.scm
+
 test: bin/kal
 	tests/check.sh bin/kal
+
+fasltest: kal.fasl
+	tests/check.sh $(OWLVM) kal.fasl
 
 install: bin/kal
 	-mkdir -p $(DESTDIR)$(PREFIX)$(BINDIR)
