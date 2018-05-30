@@ -87,7 +87,7 @@
             (tuple 'week n)))
 
       (define get-day-number
-         (get-any-of 
+         (one-of
             (get-word "maanantai" 1) 
             (get-word "tiistai" 2)
             (get-word "keskiviikko" 3)
@@ -95,13 +95,20 @@
             (get-word "perjantai" 5)
             (get-word "lauantai" 6)
             (get-word "sunnuntai" 7)
-            (get-word-ci "monday" 1)
-            (get-word-ci "tuesday" 2)
-            (get-word-ci "wednesday" 3)
-            (get-word-ci "thursday" 4)
-            (get-word-ci "friday" 5)
-            (get-word-ci "saturday" 6)
-            (get-word-ci "sunday" 7)
+            (get-word "monday" 1) ;; get-word-ci is currently missing
+            (get-word "tuesday" 2)
+            (get-word "wednesday" 3)
+            (get-word "thursday" 4)
+            (get-word "friday" 5)
+            (get-word "saturday" 6)
+            (get-word "sunday" 7)
+            (get-word "Monday" 1)
+            (get-word "Tuesday" 2)
+            (get-word "Wednesday" 3)
+            (get-word "Thursday" 4)
+            (get-word "Friday" 5)
+            (get-word "Saturday" 6)
+            (get-word "Sunday" 7)
             (get-word "ma" 1)
             (get-word "ti" 2)
             (get-word "ke" 3)
@@ -168,7 +175,7 @@
       (define get-recurrence-start
          (let-parses
             ((skip maybe-whitespace)
-             (skip (get-any-of (get-word "in" 0) (get-word "at" 0) (get-word "of" 0) (get-word "on" 0) (get-word "during" 0) (get-word "every" 0))))
+             (skip (one-of (get-word "in" 0) (get-word "at" 0) (get-word "of" 0) (get-word "on" 0) (get-word "during" 0) (get-word "every" 0))))
             0))
 
       (define get-recurrence-weeks
@@ -217,7 +224,7 @@
              (skip (get-word "every" 42))
              (skip maybe-whitespace)
              (rec
-                (get-any-of
+                (one-of
                    get-yearly-rec
                    get-daily-interval-rec
                    get-daily-rec))
@@ -255,7 +262,7 @@
          (let-parses
             ((days
                (get-greedy*
-                  (get-any-of
+                  (one-of
                      get-recurring
                      get-day
                      get-comment)))

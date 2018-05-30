@@ -6,21 +6,16 @@ INSTALL?=install
 CFLAGS?=-Wall -O2
 OFLAGS?=-O1
 CC?=gcc
-OWLVERSION=0.1.14
-OWLVM=owl-lisp-$(OWLVERSION)/bin/vm
-OWL=$(OWLVM) owl-lisp-$(OWLVERSION)/fasl/init.fasl
-
-# If you already have owl, you can use it to build with 
-#    $ make OWL=/usr/bin/ol
+OWLVER=0.1.15
+OWLURL=https://github.com/owl-lisp/owl/releases/download/v$(OWLVER)
 
 bin/kal: kal.c
 	-mkdir -p bin
 	$(CC) $(CFLAGS) -o bin/kal kal.c
 	make test
 
-kal.c: kal.scm kal/parse.scm kal/main.scm
-	$(OWL) --version || make get-owl
-	$(OWL) $(OFLAGS) -o kal.c kal.scm
+kal.c: kal.scm kal/parse.scm kal/main.scm bin/ol
+	bin/ol $(OFLAGS) -o kal.c kal.scm
 
 kal.fasl: kal.scm kal/parse.scm kal/main.scm
 	$(OWL) --version || make get-owl
@@ -29,9 +24,6 @@ kal.fasl: kal.scm kal/parse.scm kal/main.scm
 test: bin/kal
 	tests/check.sh bin/kal
 
-fasltest: kal.fasl
-	tests/check.sh $(OWLVM) kal.fasl
-
 install: bin/kal
 	-mkdir -p $(DESTDIR)$(PREFIX)$(BINDIR)
 	$(INSTALL) -m 755 bin/kal $(DESTDIR)$(PREFIX)$(BINDIR)/kal
@@ -39,9 +31,12 @@ install: bin/kal
 uninstall:
 	-rm -f $(DESTDIR)$(PREFIX)$(BINDIR)/kal
 
-get-owl:
-	test -d owl-lisp-$(OWLVERSION) || curl -L https://github.com/aoh/owl-lisp/archive/v$(OWLVERSION).tar.gz | tar -zxvf -
-	cd owl-lisp-$(OWLVERSION) && make bin/vm
+bin/ol:
+	mkdir -p bin tmp
+	test -f ol-$(OWLVER).c.gz || wget $(OWLURL)/ol-$(OWLVER).c.gz
+	gzip -d < ol-$(OWLVER).c.gz > tmp/ol-$(OWLVER).c
+	rm ol-$(OWLVER).c.gz
+	cc -O2 -o bin/ol tmp/ol-$(OWLVER).c
 
 clean:
 	-rm -f kal.c
